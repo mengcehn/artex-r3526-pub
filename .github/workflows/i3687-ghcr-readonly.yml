@@ -1,0 +1,37 @@
+name: i3687-ghcr-readonly
+on:
+  push:
+    branches: [ main ]
+permissions:
+  contents: read
+  packages: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ghcr-probe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "repo=$GITHUB_REPOSITORY actor=$GITHUB_ACTOR ts=$(date +%s)"
+          echo "== github token scopes/api =="
+          curl -s -o /dev/null -w "api-user:%{http_code}\n" -H "Authorization: token $GH_TOKEN" https://api.github.com/user
+          for repo in mengcehn/artex-r3472c mengcehn/artex-r3472 artexorgi3562/artex-i3687; do
+            echo "== $repo =="
+            c=$(curl -s -o /tmp/tok_$RANDOM.json -w "%{http_code}" -u "x:$GH_TOKEN" "https://ghcr.io/token?service=ghcr.io&scope=repository:$repo:pull,push")
+            echo "token-http:$c"
+            TOK=$(python3 - <<PY
+import json,glob
+f=sorted(glob.glob('/tmp/tok_*.json'))[-1]
+try:
+  print(json.load(open(f)).get('token',''))
+except Exception as e:
+  print('')
+PY
+)
+            echo "token-len:${#TOK}"
+            echo "pull-http:$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOK" -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' "https://ghcr.io/v2/$repo/manifests/w-baseline-3687")"
+            echo "post-uploads-http:$(curl -s -o /tmp/up.json -w '%{http_code}' -X POST -H "Authorization: Bearer $TOK" "https://ghcr.io/v2/$repo/blobs/uploads/")"
+            head -c 200 /tmp/up.json; echo
+            echo "tags-http:$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $TOK" "https://ghcr.io/v2/$repo/tags/list")"
+          done

